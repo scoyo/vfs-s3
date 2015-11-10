@@ -1,9 +1,43 @@
 Amazon S3 driver for VFS (Apache Commons Virtual File System)
 =============================================================
 
-This code is based on <http://code.google.com/p/vfs-s3/> which [is no longer supported.](http://code.google.com/p/vfs-s3/issues/detail?id=4)
 
-It provides S3 support for [Commons VFS](http://commons.apache.org/vfs/). 
+Branch | Description | Build Status
+------------ | ------------- | ------------
+branch-2.2.x | See below | [![Build Status](https://secure.travis-ci.org/abashev/vfs-s3.png?branch=branch-2.2.x)](http://travis-ci.org/abashev/vfs-s3)
+branch-2.1.x | **Current** Switch to Amazon SDK for better integration and stability | [![Build Status](https://secure.travis-ci.org/abashev/vfs-s3.png?branch=branch-2.1.x)](http://travis-ci.org/abashev/vfs-s3)
+branch-2.0.x | **Out-dated** It uses Jets3t as back-end for interracting with Amazon S3 | [![Build Status](https://secure.travis-ci.org/abashev/vfs-s3.png?branch=branch-2.0.x)](http://travis-ci.org/abashev/vfs-s3)
+
+Scope of branch-2.2.x development
+---
+1. Total refactoring for package names - move everything into com.github
+1. Integration with Java 7 as file system provider
+1. Make code more concurrency aware
+1. 
+
+
+Using with Maven
+----------------
+
+Add this section to your repository configuration
+
+    <repositories>
+        <repository>
+            <id>vfs-s3.repository</id>
+            <name>vfs-s3 project repository</name>
+            <url>http://dl.bintray.com/content/abashev/vfs-s3</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
+Why using commons-vfs is a bad idea
+---------------
+
+It is one hour monitoring for heavy loaded tomcat server
+
+![Monitoring](https://raw.githubusercontent.com/abashev/vfs-s3/branch-2.2.x/docs/pasted_image_at_2014_12_07_23_44.png)
 
 
 Bootstraping with Spring
@@ -31,24 +65,35 @@ Sample Java Code
 
 	// Create bucket
 	FileSystemManager fsManager = VFS.getManager();
-	FileObject dir = fsManager.resolveFile("s3://simpe-bucket");
+	FileObject dir = fsManager.resolveFile("s3://simple-bucket/test-folder/");
 	dir.createFolder();
-	
+
 	// Upload file to S3
 	FileObject dest = fsManager.resolveFile("s3://test-bucket/backup.zip");
 	FileObject src = fsManager.resolveFile(new File("/path/to/local/file.zip").getAbsolutePath());
 	dest.copyFrom(src, Selectors.SELECT_SELF);
-	
-	
+
+
 Running the tests
 -----------------
+For running tests you need active credentials for AWS. You can specify them as
 
-Tu run the tests with Maven you have to edit the
+1.  Shell environment properties
 
-	src/test/resources/config.properties
+        export AWS_ACCESS_KEY=AAAAAAA
+        export AWS_SECRET_KEY=SSSSSSS
+    And run maven build with profile travis-ci `mvn test -Ptravis-ci`
 
-file. Fill your AWS Key and Id. Then change the bucket name, because it must be globally 
-unique (you can just add a suffix). Finally you have to provide the path to backup.zip which
-is in the same directory.
+1. Or you can update your settings.xml file with default or profile's properties
 
-Make sure that you never commit your credentials!
+        <properties>
+            <aws.accessKey>AAAAAAAAAAA</aws.accessKey>
+            <aws.secretKey>SSSSSSSSSSS</aws.secretKey>
+        </properties>
+
+**Make sure that you never commit your credentials!**
+
+***
+
+This code is based on <http://code.google.com/p/vfs-s3/> which [is no longer supported.](http://code.google.com/p/vfs-s3/issues/detail?id=4)
+

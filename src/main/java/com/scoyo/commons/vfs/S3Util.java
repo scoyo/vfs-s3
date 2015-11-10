@@ -6,10 +6,10 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.commons.vfs.FileSystemException;
-import org.apache.commons.vfs.FileSystemOptions;
-import org.apache.commons.vfs.auth.StaticUserAuthenticator;
-import org.apache.commons.vfs.impl.DefaultFileSystemConfigBuilder;
+import org.apache.commons.vfs2.FileSystemException;
+import org.apache.commons.vfs2.FileSystemOptions;
+import org.apache.commons.vfs2.auth.StaticUserAuthenticator;
+import org.apache.commons.vfs2.impl.DefaultFileSystemConfigBuilder;
 
 import com.intridea.io.vfs.provider.s3.S3FileProvider;
 
@@ -20,6 +20,7 @@ import com.intridea.io.vfs.provider.s3.S3FileProvider;
  * @author Moritz Siuts
  *
  */
+@Deprecated
 public class S3Util {
 
 	private static final Log log = LogFactory.getLog(S3Util.class);
@@ -37,6 +38,7 @@ public class S3Util {
 	 *
 	 * @throws IOException if the property file could not be read
 	 */
+    @Deprecated
 	public static void initS3Provider(final String propertyFileLocation) throws IOException {
 		// load authentication information via property file
 		final Properties userConfig = new Properties();
@@ -62,6 +64,7 @@ public class S3Util {
 	 *
 	 * @throws FileSystemException file system configuration could not be build
 	 */
+    @Deprecated
 	public static void initS3Provider(final String awsKeyId, final String awsKey) throws FileSystemException {
 		// create authenticator
 		final StaticUserAuthenticator userAuthenticator = new StaticUserAuthenticator(null, awsKeyId, awsKey);

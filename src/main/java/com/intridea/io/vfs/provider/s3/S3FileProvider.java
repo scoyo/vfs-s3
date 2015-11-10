@@ -1,19 +1,13 @@
 package com.intridea.io.vfs.provider.s3;
 
+import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.Region;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.commons.vfs.Capability;
-import org.apache.commons.vfs.FileName;
-import org.apache.commons.vfs.FileSystem;
-import org.apache.commons.vfs.FileSystemException;
-import org.apache.commons.vfs.FileSystemOptions;
-import org.apache.commons.vfs.provider.AbstractOriginatingFileProvider;
-import org.apache.commons.vfs.util.UserAuthenticatorUtils;
-import org.apache.commons.vfs.UserAuthenticationData;
-import org.jets3t.service.S3Service;
-import org.jets3t.service.S3ServiceException;
-import org.jets3t.service.impl.rest.httpclient.RestS3Service;
-import org.jets3t.service.security.AWSCredentials;
+import org.apache.commons.vfs2.*;
+import org.apache.commons.vfs2.provider.AbstractOriginatingFileProvider;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -25,13 +19,13 @@ import java.util.Collections;
  *
  * @author Marat Komarov
  * @author Matthias L. Jugel
+ * @author Moritz Siuts
  */
 public class S3FileProvider extends AbstractOriginatingFileProvider {
 
     public final static Collection<Capability> capabilities = Collections.unmodifiableCollection(Arrays.asList(
         Capability.CREATE,
         Capability.DELETE,
-        Capability.RENAME,
         Capability.GET_TYPE,
         Capability.GET_LAST_MODIFIED,
         Capability.SET_LAST_MODIFIED_FILE,
@@ -40,15 +34,7 @@ public class S3FileProvider extends AbstractOriginatingFileProvider {
         Capability.READ_CONTENT,
         Capability.URI,
         Capability.WRITE_CONTENT
-        //Capability.APPEND_CONTENT
     ));
-
-    /**
-     * Auth data types necessary for AWS authentification.
-     */
-    public final static UserAuthenticationData.Type[] AUTHENTICATOR_TYPES = new UserAuthenticationData.Type[] {
-        UserAuthenticationData.USERNAME, UserAuthenticationData.PASSWORD
-    };
 
     /**
      * Default options for S3 file system.
@@ -58,21 +44,16 @@ public class S3FileProvider extends AbstractOriginatingFileProvider {
     /**
      * Returns default S3 file system options.
      * Use it to set AWS auth credentials.
-     * @return
+     * @return default S3 file system options
      */
-    public static FileSystemOptions getDefaultFileSystemOptions () {
+    public static FileSystemOptions getDefaultFileSystemOptions() {
         return defaultOptions;
     }
 
     /**
-     * S3 service instance
-     */
-    private S3Service service;
-
-    /**
      * Logger instance
      */
-    private Log logger = LogFactory.getLog(S3FileProvider.class);
+    private final Log logger = LogFactory.getLog(S3FileProvider.class);
 
     public S3FileProvider() {
         super();
@@ -87,45 +68,36 @@ public class S3FileProvider extends AbstractOriginatingFileProvider {
      * @return an S3 file system
      * @throws FileSystemException if the file system cannot be created
      */
-    protected FileSystem doCreateFileSystem(FileName fileName,
-            FileSystemOptions fileSystemOptions) throws FileSystemException {
+    @Override
+    protected FileSystem doCreateFileSystem(
+            FileName fileName, FileSystemOptions fileSystemOptions
+    ) throws FileSystemException {
+        final FileSystemOptions fsOptions = (fileSystemOptions != null) ? fileSystemOptions : getDefaultFileSystemOptions();
+        final S3FileSystemConfigBuilder config = S3FileSystemConfigBuilder.getInstance();
 
-        FileSystemOptions fsOptions = fileSystemOptions != null ?
-                fileSystemOptions : getDefaultFileSystemOptions();
+        final AWSCredentials awsCredentials = config.getAWSCredentials(fsOptions);
 
-        // Initialize once S3 service.
+        AmazonS3Client service = config.getAmazonS3Client(fsOptions);
+
         if (service == null) {
-            UserAuthenticationData authData = null;
-            try {
-                // Read authData from file system options
-                authData = UserAuthenticatorUtils.authenticate(fsOptions, AUTHENTICATOR_TYPES);
+            ClientConfiguration clientConfiguration = config.getClientConfiguration(fsOptions);
 
-                logger.info("Initialize Amazon S3 service client ...");
+            service = new AmazonS3Client(awsCredentials, clientConfiguration);
 
-                // Fetch AWS key-id and secret key from authData
-                String keyId = UserAuthenticatorUtils.toString(UserAuthenticatorUtils.getData(authData, UserAuthenticationData.USERNAME, null));
-                String key = UserAuthenticatorUtils.toString(UserAuthenticatorUtils.getData(authData, UserAuthenticationData.PASSWORD, null));
-                if (keyId.length() + key.length() == 0) {
-                    throw new FileSystemException("Empty AWS credentials");
-                }
+            Region region = config.getRegion(fsOptions);
 
-                // Initialize S3 service client.
-                AWSCredentials awsCredentials = new AWSCredentials(keyId, key);
-                service = new RestS3Service(awsCredentials);
-                logger.info("... Ok");
-
-            } catch (S3ServiceException e) {
-                logger.error(String.format("Failed to initialize Amazon S3 service client. Reason: %s",
-                        e.getS3ErrorMessage()), e);
-                throw new FileSystemException(e);
-            }
-            finally {
-                UserAuthenticatorUtils.cleanup(authData);
+            if (region != null) {
+                service.setRegion(region.toAWSRegion());
             }
         }
 
-        // Construct S3 file system
-        return new S3FileSystem((S3FileName) fileName, service, fsOptions);
+        S3FileSystem fileSystem = new S3FileSystem((S3FileName) fileName, service, fsOptions);
+
+        if (config.getAmazonS3Client(fsOptions) == null) {
+            fileSystem.setShutdownServiceOnClose(true);
+        }
+
+        return fileSystem;
     }
 
     /**
@@ -133,6 +105,7 @@ public class S3FileProvider extends AbstractOriginatingFileProvider {
      *
      * @return the file system capabilities
      */
+    @Override
     public Collection<Capability> getCapabilities() {
         return capabilities;
     }
