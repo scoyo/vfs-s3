@@ -83,6 +83,12 @@ public class S3FileObject extends AbstractFileObject {
      */
     private Owner fileOwner;
 
+    /**
+     * set and transferred with metadata when using none standard content encoding
+     */
+    private String contentEncoding;
+
+
     public S3FileObject(AbstractFileName fileName,
                         S3FileSystem fileSystem) throws FileSystemException {
         super(fileName, fileSystem);
@@ -710,6 +716,10 @@ public class S3FileObject extends AbstractFileObject {
         }
     }
 
+    public void setContentEncoding(String encoding) throws FileSystemException {
+        contentEncoding = encoding;
+    }
+
     /**
      * Returns file that was used as local cache. Useful to do something with local tools like image resizing and so on
      *
@@ -892,7 +902,9 @@ public class S3FileObject extends AbstractFileObject {
         if (getServerSideEncryption()) {
             md.setSSEAlgorithm(AES_256_SERVER_SIDE_ENCRYPTION);
         }
-
+        if (contentEncoding != null && !contentEncoding.isEmpty()) {
+            md.setContentEncoding(contentEncoding);
+        }
         request.setMetadata(md);
         try {
             TransferManagerConfiguration tmConfig = new TransferManagerConfiguration();
