@@ -5,7 +5,7 @@
     <groupId>com.intridea.io</groupId>
     <artifactId>vfs-s3</artifactId>
     <packaging>jar</packaging>
-    <version>2.2.1-SCOYO-SNAPSHOT</version>
+    <version>2.2.2.SCOYO-SNAPSHOT</version>
 
     <name>vfs-s3</name>
 

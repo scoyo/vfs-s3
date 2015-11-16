@@ -87,6 +87,10 @@ public class S3FileObject extends AbstractFileObject {
      * set and transferred with metadata when using none standard content encoding
      */
     private String contentEncoding;
+    /**
+     * set and transferred with metadata when the object should be cached
+     */
+    private String cacheControl;
 
 
     public S3FileObject(AbstractFileName fileName,
@@ -716,8 +720,12 @@ public class S3FileObject extends AbstractFileObject {
         }
     }
 
-    public void setContentEncoding(String encoding) throws FileSystemException {
-        contentEncoding = encoding;
+    public void setContentEncoding(String contentEncoding) throws FileSystemException {
+        this.contentEncoding = contentEncoding;
+    }
+
+    public void setCacheControl(String cacheControl) throws FileSystemException {
+        this.cacheControl = cacheControl;
     }
 
     /**
@@ -904,6 +912,9 @@ public class S3FileObject extends AbstractFileObject {
         }
         if (contentEncoding != null && !contentEncoding.isEmpty()) {
             md.setContentEncoding(contentEncoding);
+        }
+        if (cacheControl != null && !cacheControl.isEmpty()) {
+            md.setCacheControl(cacheControl);
         }
         request.setMetadata(md);
         try {
